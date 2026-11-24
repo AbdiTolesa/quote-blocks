@@ -10,7 +10,7 @@ A custom Gutenberg block for designing quotes: pick one of five layouts, then ad
 - **20+ design controls**: box shadow, border radius, margin and padding (`BoxControl`), icon size, colour, shadow and spacing, top and bottom bars, and colour panels for the quote, citation and background.
 - **Typography**: font size presets (`FontSizePicker`), letter spacing, font weight, and any system font or **Google Font**. The Google Fonts list loads in the editor through the Google Fonts API, and the selected font is enqueued on the frontend only for posts that use it.
 - **Custom quote icons**: swap the quotation mark for one of several SVG icons.
-- **Copy to clipboard** (new in 0.2.0): an optional button whose frontend behaviour is a 600-byte script module, loaded only on pages where the block uses it.
+- **Copy to clipboard** (new in 0.2.0): an optional button whose frontend behaviour is a script module under 1 KB, loaded only on pages where the block uses it.
 
 | Editor sidebar | Variation |
 | --- | --- |
@@ -35,7 +35,7 @@ A few implementation details:
 
 - **Metadata-driven registration.** Everything is declared in `block.json` (`apiVersion: 3`), and PHP registers it with one call: `register_block_type( __DIR__ . '/build' )`.
 - **Variation-first editing.** When the `class` attribute is empty, `Edit` renders a `BlockVariationPicker` instead of the block, so every quote starts from a designed layout. A toolbar button takes you back to the picker.
-- **Interactivity API without breaking existing content.** The copy button's directives (`data-wp-interactive`, `data-wp-context`, `data-wp-on--click`, `data-wp-text`, `data-wp-class--is-copied`) are only added to the saved markup when `showCopyButton` is on. Blocks saved before the feature existed produce byte-identical markup, so they validate without a `deprecated` entry. The store in `view.js` uses a generator action so context stays correct across the async clipboard call. Labels are translated in `save` and passed through context.
+- **Interactivity API without breaking existing content.** The copy button's directives (`data-wp-interactive`, `data-wp-context`, `data-wp-on--click`, `data-wp-text`, `data-wp-class--is-copied`) are only added to the saved markup when `showCopyButton` is on. Blocks saved before the feature existed produce byte-identical markup, so they validate without a `deprecated` entry. The store in `view.js` uses a generator action so context stays correct across the async clipboard call. On non-HTTPS sites, where browsers don't provide `navigator.clipboard`, it falls back to a temporary textarea with `execCommand( 'copy' )`. Labels are translated in `save` and passed through context.
 - **Conditional asset loading.** Google Font stylesheets are enqueued per block, from the parsed post content. The view script is a `viewScriptModule`, so WordPress only prints it when the block is on the page.
 
 ## Requirements

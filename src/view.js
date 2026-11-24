@@ -23,6 +23,33 @@ const getQuoteText = ( block ) => {
 	return citation ? `“${ quote }” — ${ citation }` : `“${ quote }”`;
 };
 
+/**
+ * Copies text without the async Clipboard API, which browsers only expose on
+ * secure (HTTPS or localhost) pages. Must run synchronously inside the click.
+ *
+ * @param {string} text Text to copy.
+ * @return {boolean} Whether the browser reported a successful copy.
+ */
+const legacyCopy = ( text ) => {
+	const textarea = document.createElement( 'textarea' );
+	textarea.value = text;
+	textarea.setAttribute( 'readonly', '' );
+	textarea.style.position = 'fixed';
+	textarea.style.opacity = '0';
+	document.body.appendChild( textarea );
+	textarea.select();
+
+	let copied = false;
+	try {
+		copied = document.execCommand( 'copy' );
+	} catch {
+		copied = false;
+	}
+	textarea.remove();
+
+	return copied;
+};
+
 store( 'wp-quote-blocks', {
 	state: {
 		/**
@@ -53,14 +80,19 @@ store( 'wp-quote-blocks', {
 			const { ref } = getElement();
 			const block = ref.closest( '.wp-quote-blocks' );
 
-			try {
-				yield window.navigator.clipboard.writeText(
-					getQuoteText( block )
-				);
-				context.status = 'copied';
-			} catch {
-				// Clipboard access needs HTTPS and user permission.
-				context.status = 'failed';
+			const text = getQuoteText( block );
+
+			if ( window.isSecureContext && window.navigator.clipboard ) {
+				try {
+					yield window.navigator.clipboard.writeText( text );
+					context.status = 'copied';
+				} catch {
+					// Permission denied or document not focused.
+					context.status = legacyCopy( text ) ? 'copied' : 'failed';
+				}
+			} else {
+				// Plain HTTP: the async Clipboard API is unavailable.
+				context.status = legacyCopy( text ) ? 'copied' : 'failed';
 			}
 
 			yield new Promise( ( resolve ) =>
