@@ -1,7 +1,7 @@
 {
 	"name": "wp-quote-blocks",
-	"version": "0.2.0",
-	"description": "A Gutenberg block for designing quotes, with five layout variations, Google Fonts, and an Interactivity API copy button.",
+	"version": "0.3.0",
+	"description": "A Gutenberg block for designing quotes, with five layout variations, Font Library fonts, and an Interactivity API copy button.",
 	"author": "Abdi Tolessa",
 	"license": "GPL-2.0-or-later",
 	"main": "build/index.js",

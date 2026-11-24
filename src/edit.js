@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { getBlockVariations } from '@wordpress/blocks';
 
 import {
@@ -9,17 +9,18 @@ import {
 	BlockControls,
 	InspectorControls,
 	PanelColorSettings,
+	useSettings,
 } from '@wordpress/block-editor';
 
 import './editor.scss';
 
 import {
 	PanelBody,
-	SelectControl,
 	RangeControl,
 	Button,
 	ButtonGroup,
 	ToggleControl,
+	Notice,
 	Toolbar,
 	FontSizePicker,
 	__experimentalBoxControl as BoxControl,
@@ -27,7 +28,11 @@ import {
 	__experimentalToolsPanelItem as ToolsPanelItem,
 } from '@wordpress/components';
 
-import { useState, useEffect } from '@wordpress/element';
+import {
+	getFirstFamily,
+	getGoogleFontUrl,
+	getLegacyFontName,
+} from './legacy-font';
 
 /**
  * The edit function describes the structure of your block in the context of the
@@ -70,127 +75,32 @@ function Placeholder( { clientId, setAttributes } ) {
 	);
 }
 
+/**
+ * Whether a font family is available from theme.json or the Font Library.
+ *
+ * @param {Object|Array} fontFamilies Value of the `typography.fontFamilies` setting.
+ * @param {string}       name         Font family name.
+ * @return {boolean} True when the site already provides the font.
+ */
+const isFontInstalled = ( fontFamilies, name ) => {
+	const families = Array.isArray( fontFamilies )
+		? fontFamilies
+		: Object.values( fontFamilies ?? {} ).flat();
+	const needle = name.toLowerCase();
+
+	return families.some(
+		( family ) =>
+			family?.name?.toLowerCase() === needle ||
+			getFirstFamily( family?.fontFamily ).toLowerCase() === needle
+	);
+};
+
 function EditContainer( props ) {
 	const { attributes, setAttributes } = props;
-	const [ fontOptions, setFontOptions ] = useState( '' );
-	const [ googleFonts, setGoogleFonts ] = useState( {} );
-	const [ fontWeights, setFontWeights ] = useState( [] );
-	const { fontWeight } = attributes;
-
-	const getGooglApiKey = async function () {
-		let apiKey = '';
-		await wp.ajax
-			.post( 'get_google_api_key', {
-				_wpnonce: wpqbVars.nonce,
-				action: 'qblks_get_google_api_key',
-			} )
-			.done( function ( response ) {
-				apiKey = response;
-			} );
-
-		return apiKey;
-	};
-
-	const fetchSystemFonts = async () => {
-		const fontFamilies = [];
-		const fonts = await document.fonts.ready;
-		const kindaIterable = fonts.values();
-		while ( true ) {
-			const font = kindaIterable.next();
-			if ( font.done ) {
-				break;
-			}
-			fontFamilies.push( font.value.family );
-		}
-
-		return [ ...new Set( fontFamilies ) ];
-	};
-
-	const loadFontCss = async ( gFonts, font ) => {
-		const linkId = font.replace( / /g, '+' );
-		const systemFonts = await fetchSystemFonts();
-		if (
-			systemFonts.includes( font ) ||
-			! font ||
-			document.getElementById( `google-font-${ linkId }` )
-		) {
-			return;
-		}
-		let url = `https://fonts.googleapis.com/css?family=${ font }`;
-
-		const insertFontStylesheet = ( fontVariants ) => {
-			url += `:${ fontVariants }&display=swap'`;
-			document.body.insertAdjacentHTML(
-				'beforebegin',
-				`<link rel='stylesheet' id="google-font-${ linkId }" href='${ url }' type='text/css' media='all' />`
-			);
-		};
-
-		let fontVariants;
-		getWeightsForFontFamily( gFonts, font ).then( ( weights ) => {
-			fontVariants = weights.join( ',' );
-			insertFontStylesheet( fontVariants );
-		} );
-	};
-
-	const fetchGoogleFonts = async () => {
-		let cachedGoogleFonts = localStorage.getItem( 'googleFonts' );
-		if ( cachedGoogleFonts ) {
-			cachedGoogleFonts = JSON.parse( cachedGoogleFonts );
-			setGoogleFonts( cachedGoogleFonts );
-			return cachedGoogleFonts;
-		}
-
-		const KEY = await getGooglApiKey();
-		const url = `https://www.googleapis.com/webfonts/v1/webfonts?key=${ KEY }`;
-		const response = await fetch( url );
-		const fonts = await response.json();
-		if ( ! ( fonts.items && Array.isArray( fonts.items ) ) ) {
-			return { items: [] };
-		}
-		localStorage.setItem( 'googleFonts', JSON.stringify( fonts ) );
-		setGoogleFonts( fonts );
-
-		return fonts;
-	};
-
-	const getFontOptions = async ( googleFonts ) => {
-		if ( fontOptions ) {
-			return;
-		}
-
-		const options = { system: [], google: [] };
-		const systemFonts = await fetchSystemFonts();
-		systemFonts.forEach( ( font ) => {
-			options.system.push( { label: font, value: font } );
-		} );
-
-		googleFonts.items.forEach( ( font ) => {
-			options.google.push( { label: font.family, value: font.family } );
-		} );
-		setFontOptions( { ...options } );
-	};
-
-	const updateFontWeightOptions = ( weights ) => {
-		const options = [];
-		weights.forEach( ( weight ) => {
-			options.push( { label: weight, value: weight } );
-		} );
-		setFontWeights( options );
-	};
-
-	useEffect( () => {
-		fetchGoogleFonts().then( ( googleFonts ) => {
-			loadFontCss( googleFonts, attributes.fontFamily );
-			getWeightsForFontFamily( googleFonts, attributes.fontFamily ).then(
-				( weights ) => {
-					updateFontWeightOptions( weights );
-				}
-			);
-			getFontOptions( googleFonts );
-		} );
-	}, [] );
-
+	const [ fontFamilies ] = useSettings( 'typography.fontFamilies' );
+	const legacyFont = getLegacyFontName( attributes );
+	const loadLegacyFont =
+		!! legacyFont && ! isFontInstalled( fontFamilies, legacyFont );
 	const onChangeIconSize = ( size ) => {
 		setAttributes( { iconSize: size + 'px' } );
 	};
@@ -324,53 +234,6 @@ function EditContainer( props ) {
 		setAttributes( { quoteFontSize: '1rem', citationFontSize: '0.75rem' } );
 	};
 
-	const getWeightsForFontFamily = async ( googleFonts, fontFamily ) => {
-		const fonts = googleFonts;
-
-		const fontObj = fonts.items.find( ( font ) => {
-			return font.family === fontFamily;
-		} );
-		if ( ! fontObj ) {
-			return [];
-		}
-		let variants = fontObj.variants.map( ( variant ) => {
-			if ( parseInt( variant ) ) {
-				return parseInt( variant );
-			}
-			if (
-				isNaN( variant ) &&
-				[ 'lighter', 'bold', 'bolder' ].includes( variant )
-			) {
-				return variant;
-			}
-			return null;
-		} );
-
-		variants = variants.filter( ( variant ) => variant !== null );
-
-		return [ ...new Set( variants ) ];
-	};
-
-	const onChangeFontFamily = ( newFont ) => {
-		setAttributes( { fontFamily: newFont } );
-		loadFontCss( googleFonts, newFont );
-		getWeightsForFontFamily( googleFonts, newFont ).then( ( weights ) => {
-			updateFontWeightOptions( weights );
-			if ( isNaN( attributes.fontWeight ) ) {
-				return;
-			}
-			if ( ! weights.includes( parseInt( attributes.fontWeight ) ) ) {
-				if ( weights.length === 0 ) {
-					setAttributes( { fontWeight: 'normal' } );
-				} else if ( weights.includes( 300 ) ) {
-					setAttributes( { fontWeight: 300 } );
-				} else {
-					setAttributes( { fontWeight: weights[ 0 ] } );
-				}
-			}
-		} );
-	};
-
 	const blockStyles = {
 		backgroundColor: attributes.backgroundColor,
 		boxShadow:
@@ -388,53 +251,6 @@ function EditContainer( props ) {
 
 	const quoteTextsStyle = {
 		textAlign: attributes.alignment ? attributes.alignment : 'inherit',
-		fontFamily: `"${ attributes.fontFamily }", Sans-serif`,
-	};
-
-	const getFonts = ( type ) => {
-		return fontOptions[ type ] || [];
-	};
-
-	const fontWeightSelector = () => {
-		return (
-			fontWeights.length !== 0 && (
-				<SelectControl
-					label="Font weight"
-					value={ fontWeight }
-					onChange={ ( newWeight ) =>
-						setAttributes( { fontWeight: newWeight } )
-					}
-					__nextHasNoMarginBottom
-					options={ fontWeights }
-				/>
-			)
-		);
-	};
-
-	const fontFamilySelector = () => {
-		return (
-			<SelectControl
-				label={ __( 'Select font', 'wp-quote-blocks'  ) }
-				value={ attributes.fontFamily }
-				onChange={ ( newFont ) => onChangeFontFamily( newFont ) }
-				__nextHasNoMarginBottom
-			>
-				<optgroup label={ __( 'System fonts', 'wp-quote-blocks' ) }>
-					{ getFonts( 'system' ).map( ( font ) => (
-						<option key={ font.value } value={ font.value }>
-							{ font.label }
-						</option>
-					) ) }
-				</optgroup>
-				<optgroup label={ __( 'Google fonts', 'wp-quote-blocks' ) }>
-					{ getFonts( 'google' ).map( ( font ) => (
-						<option key={ font.value } value={ font.value }>
-							{ font.label }
-						</option>
-					) ) }
-				</optgroup>
-			</SelectControl>
-		);
 	};
 
 	const horizontalBar = attributes.showLines && (
@@ -487,7 +303,8 @@ function EditContainer( props ) {
 					viewBox={ iconSVG.getAttribute( 'viewBox' ) }
 					style={ { ...iconStyles, transform: 'rotate(180deg)' } }
 					dangerouslySetInnerHTML={ {
-						__html: svgElementFromString( attributes.icon ).innerHTML,
+						__html: svgElementFromString( attributes.icon )
+							.innerHTML,
 					} }
 				/>
 			</div>
@@ -540,6 +357,18 @@ function EditContainer( props ) {
 	return (
 		<>
 			<InspectorControls>
+				{ legacyFont && (
+					<Notice status="warning" isDismissible={ false }>
+						{ sprintf(
+							/* translators: %s: Font family name. */
+							__(
+								'This quote uses "%s" from the old font picker. Install it from Appearance → Fonts (or Styles → Typography in the Site Editor), then select it under Typography → Font so it is served from your site.',
+								'wp-quote-blocks'
+							),
+							legacyFont
+						) }
+					</Notice>
+				) }
 				<PanelBody title={ __( 'General', 'wp-quote-blocks' ) }>
 					<ToggleControl
 						label={ __( 'Show icon', 'wp-quote-blocks' ) }
@@ -695,29 +524,6 @@ function EditContainer( props ) {
 						</PanelBody>
 					</ToolsPanelItem>
 					<ToolsPanelItem
-						hasValue={ () => !! fontOptions }
-						label={ __( 'Font family', 'wp-quote-blocks' ) }
-						onDeselect={ () =>
-							setAttributes( { fontFamily: 'Sans-serif' } )
-						}
-					>
-						<PanelBody
-							title={ __( 'Font family', 'wp-quote-blocks' ) }
-						>
-							{ fontFamilySelector }
-						</PanelBody>
-					</ToolsPanelItem>
-					{ fontWeights.length !== 0 && (
-						<ToolsPanelItem
-							hasValue={ () => fontWeights.length !== 0 }
-							label={ __( 'Font weight', 'wp-quote-blocks' ) }
-						>
-							<PanelBody title={ '' }>
-								{ fontWeightSelector }
-							</PanelBody>
-						</ToolsPanelItem>
-					) }
-					<ToolsPanelItem
 						hasValue={ () => true }
 						label={ __( 'Letter spacing', 'wp-quote-blocks' ) }
 					>
@@ -775,6 +581,17 @@ function EditContainer( props ) {
 						</button>
 					</Toolbar>
 				</BlockControls>
+				{ loadLegacyFont && (
+					// Preview only: the editor canvas is an iframe, so the
+					// stylesheet has to live inside the block markup.
+					<link
+						rel="stylesheet"
+						href={ getGoogleFontUrl(
+							legacyFont,
+							attributes.style?.typography?.fontWeight
+						) }
+					/>
+				) }
 				{ horizontalBar }
 				{ firstQuotationMark }
 				<div className="quote-wrapper" style={ quoteWrapperStyles }>
@@ -784,7 +601,8 @@ function EditContainer( props ) {
 						style={ {
 							...quoteTextsStyle,
 							color: attributes.quoteFontColor,
-							fontWeight,
+							fontWeight:
+								attributes.style?.typography?.fontWeight,
 							fontSize: attributes.quoteFontSize,
 							letterSpacing: attributes.quoteLetterSpacing,
 						} }

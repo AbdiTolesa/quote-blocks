@@ -4,7 +4,7 @@
  * Description:       A plugin that allows you create elegant Quote blocks at ease.
  * Requires at least: 6.5
  * Requires PHP:      7.0
- * Version:           0.2.0
+ * Version:           0.3.0
  * Author:            Abdi Tolessa
  * Plugin URI:        https://github.com/AbdiTolesa/wp-quote-blocks
  * License:           GPL-2.0-or-later
@@ -22,96 +22,103 @@ function qblks_create_block_wp_quote_blocks_block_init() {
 
 add_action( 'init', 'qblks_create_block_wp_quote_blocks_block_init' );
 
-function qblks_custom_script() {
-	global $post;
-	if ( ! $post ) {
-		return;
+/**
+ * Generic CSS families that never need a web font.
+ */
+const QBLKS_GENERIC_FAMILIES = array( 'serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui' );
+
+/**
+ * Returns the first family name of a CSS font-family list, without quotes.
+ *
+ * @param string $value CSS font-family value.
+ * @return string Family name, or '' for empty and generic values.
+ */
+function qblks_get_first_family( $value ) {
+	$parts = explode( ',', (string) $value );
+	$name  = trim( $parts[0], " \t\"'" );
+
+	return in_array( strtolower( $name ), QBLKS_GENERIC_FAMILIES, true ) ? '' : $name;
+}
+
+/**
+ * Returns the Google font a quote chose with the pre-0.3.0 font picker.
+ *
+ * Since 0.3.0 fonts come from core's Font Library via the fontFamily block
+ * support, stored as a preset slug. Two older shapes still exist in content:
+ * - not yet re-saved: the block's old `fontFamily` attribute holds a family
+ *   name such as "Dancing Script" (slugs are lowercase-kebab, names are not);
+ * - migrated by the block deprecation: a custom `style.typography.fontFamily`
+ *   value such as `"Dancing Script", sans-serif`.
+ *
+ * Mirrors getLegacyFontName() in src/legacy-font.js.
+ *
+ * @param array $attrs Block attributes.
+ * @return string Font family name, or '' when the quote uses a preset or no font.
+ */
+function qblks_get_legacy_font_name( array $attrs ) {
+	if ( ! empty( $attrs['fontFamily'] ) && ! preg_match( '/^[a-z0-9-]+$/', $attrs['fontFamily'] ) ) {
+		return qblks_get_first_family( $attrs['fontFamily'] );
 	}
-	$blocks = parse_blocks( $post->post_content );
-	$blocks = wp_list_filter( $blocks, array( 'blockName' => 'create-block/wp-quote-blocks' ) );
-	foreach ( $blocks as $block ) {
-		$font_family = $block['attrs']['fontFamily'];
-		if ( ! $font_family ) {
-			continue;
+
+	$custom = $attrs['style']['typography']['fontFamily'] ?? '';
+	if ( $custom && 0 !== strpos( $custom, 'var:' ) ) {
+		return qblks_get_first_family( $custom );
+	}
+
+	return '';
+}
+
+/**
+ * Whether the site already provides a font family through theme.json or the
+ * Font Library, in which case core prints its @font-face rules.
+ *
+ * @param string $name Font family name.
+ * @return bool
+ */
+function qblks_is_font_installed( $name ) {
+	static $installed = null;
+
+	if ( null === $installed ) {
+		$installed = array();
+		$origins   = (array) wp_get_global_settings( array( 'typography', 'fontFamilies' ) );
+		foreach ( $origins as $families ) {
+			foreach ( (array) $families as $family ) {
+				$installed[] = strtolower( $family['name'] ?? '' );
+				$installed[] = strtolower( qblks_get_first_family( $family['fontFamily'] ?? '' ) );
+			}
 		}
-		$font_weight = ! empty( $block['attrs']['fontWeight'] ) ? $block['attrs']['fontWeight'] : '';
-		$url = "https://fonts.googleapis.com/css?family={$font_family}";
-		if ( $font_weight ) {
-			$url .= ":{$font_weight}";
-		}
-
-		wp_enqueue_style( 'wpqb-fonts-' . str_replace( ' ', '-', $font_family ), $url, array(), '0.1.0' );
-		?>
-		<?php
 	}
-}
-add_action( 'wp_enqueue_scripts', 'qblks_custom_script' );
 
-function qblks_register_settings() {
-	register_setting( 'wpqb_plugin_options_group', 'google_api_key' );
+	return in_array( strtolower( $name ), $installed, true );
 }
 
-add_action( 'admin_init', 'qblks_register_settings' );
+/**
+ * Keeps fonts picked before 0.3.0 working: enqueues the Google Fonts
+ * stylesheet for a quote whose font is not installed in the Font Library.
+ * Quotes that use Font Library fonts never contact Google.
+ *
+ * @param string $block_content Rendered block HTML.
+ * @param array  $block         Parsed block.
+ * @return string Unchanged block HTML.
+ */
+function qblks_enqueue_legacy_google_font( $block_content, $block ) {
+	$attrs = $block['attrs'] ?? array();
+	$name  = qblks_get_legacy_font_name( $attrs );
 
-function qblks_admin_menus() {
-	add_menu_page(
-		__( 'Quote Blocks settings', 'wp-quote-blocks' ),
-		__( 'Quote Blocks settings', 'wp-quote-blocks' ),
-		'manage_options',
-		'/quote-blocks-settings.php',
-		'qblks_page_html_form',
-		''
-	);
-}
-
-add_action( 'admin_menu', 'qblks_admin_menus' );
-
-function qblks_page_html_form() {
-	ob_start();
-	?>
-	<div class="wrap">
-		<h2><?php echo esc_html( 'Quote Blocks Settings', 'wp-quote-blocks' ); ?></h2>
-		<form method="post" action="options.php">
-			<?php settings_fields( 'wpqb_plugin_options_group' ); ?>
-		<table class="form-table">
-			<tr>
-				<th><label for="google_api_key">Google API key:</label></th>
-				<td>
-					<input type = 'text' class="regular-text" id="google_api_key" name="google_api_key" value="<?php echo esc_attr( get_option( 'google_api_key' ) ); ?>">
-				</td>
-			</tr>
-		</table>
-		<?php submit_button(); ?>
-	</div>
-<?php
-	echo ob_get_clean();
-}
-
-add_action( 'wp_ajax_get_google_api_key', 'qblks_get_google_api_key' );
-add_action( 'wp_ajax_nopriv_get_google_api_key', 'qblks_get_google_api_key' );
-
-function qblks_get_google_api_key() {
-	if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'qblk_nonce' ) ) {
-		die( 'Unauthorized!' );
+	// Google family names only contain letters, digits and spaces.
+	if ( ! $name || ! preg_match( '/^[A-Za-z0-9 ]+$/', $name ) || qblks_is_font_installed( $name ) ) {
+		return $block_content;
 	}
-	wp_send_json_success( get_option( 'google_api_key' ) );
+
+	$weight = $attrs['style']['typography']['fontWeight'] ?? ( $attrs['fontWeight'] ?? '' );
+	$url    = 'https://fonts.googleapis.com/css?family=' . str_replace( ' ', '+', $name );
+	if ( ctype_digit( (string) $weight ) ) {
+		$url .= ':' . $weight;
+	}
+	$url .= '&display=swap';
+
+	wp_enqueue_style( 'wpqb-font-' . sanitize_title( $name . '-' . $weight ), $url, array(), null );
+
+	return $block_content;
 }
-
-function qblks_enqueue_block_assets() {
-	wp_enqueue_script(
-		'wpqb-script',
-		plugins_url( 'edit.js', __FILE__ ),
-		array( 'wp-blocks', 'wp-i18n', 'wp-element', 'wp-api' ),
-		null
-	);
-
-	wp_localize_script(
-		'wpqb-script',
-		'wpqbVars',
-		array(
-			'nonce' => wp_create_nonce( 'qblk_nonce' ),
-		)
-	);
-}
-
-add_action( 'enqueue_block_editor_assets', 'qblks_enqueue_block_assets' );
+add_filter( 'render_block_create-block/wp-quote-blocks', 'qblks_enqueue_legacy_google_font', 10, 2 );

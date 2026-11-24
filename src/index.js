@@ -9,6 +9,7 @@ import Edit from './edit';
 import save from './save';
 import metadata from './block.json';
 import variations from './variations';
+import deprecated from './deprecated';
 
 registerBlockType( metadata.name, {
 	/**
@@ -21,4 +22,5 @@ registerBlockType( metadata.name, {
 	 */
 	save,
 	variations,
+	deprecated,
 } );

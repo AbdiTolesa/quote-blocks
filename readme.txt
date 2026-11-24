@@ -3,7 +3,7 @@ Contributors:      abditsori
 Tags:              quote, quote block, quotation, verse, highlight
 Requires at least: 6.5
 Tested up to:      6.9
-Stable tag:        0.2.0
+Stable tag:        0.3.0
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,12 +15,10 @@ Elevate your content with our powerful and versatile WordPress plugin that revol
 
 Unleash your creativity with over 20+ finely-tuned settings per block, allowing you to effortlessly customize the look, feel, and layout of your quotes. Tailor each quote block to match your website's style and captivate your audience's attention. Whether you're a blogger, content marketer, or business owner, our plugin is designed to enhance your content's visual impact.
 
-**Third Party Services**
-This plugin relies on Google Fonts API for allowing using those fonts in your block editor. When end users visit a website that embeds Google Fonts, their browsers send HTTP requests to the Google Fonts Web API. The Google Fonts Web API serves the Google Fonts Cascading Style Sheets (CSS) and subsequently the font files specified in the CSS to the users. Such HTTP requests include
+**Fonts and Third Party Services**
+Fonts come from the WordPress Font Library (Appearance → Fonts, or Styles → Typography in the Site Editor). Google Fonts installed there are copied to and served from your own site, so visitors' browsers do not contact Google.
 
-(1) The IP address used by the respective user to access the Internet
-(2) the requested URL on the Google server
-(3) HTTP headers including the user agent describing the website visitors’ Internet browser and operating system versions as well as the referer (i.e. the webpage on which the Google font is to be displayed).
+Quotes created with version 0.2.0 or earlier may use a Google font picked with the old font picker. Until that font is installed in the Font Library, the plugin keeps loading it from the Google Fonts Web API for those quotes only. In that case visitors' browsers send Google (1) their IP address, (2) the requested URL and (3) HTTP headers such as the user agent and referrer.
 
 Terms of Service: https://developers.google.com/fonts/terms
 
@@ -28,7 +26,7 @@ Terms of Service: https://developers.google.com/fonts/terms
 
 * Sleek Design Options: Access a plethora of design options to fine-tune your quotes. From fonts and colors to border styles and backgrounds, create a visually appealing quote block that resonates with your brand identity.
 * Responsive Layouts: Ensure your quotes look stunning on any device with our responsive layout settings. Choose from various layouts to optimize the appearance of your quotes across desktops, tablets, and smartphones.
-* Advanced Typography: Empower your quotes with a wide range of typography settings. Customize font families, sizes, line heights, and letter spacings to achieve the perfect visual balance.
+* Advanced Typography: Empower your quotes with a wide range of typography settings. Pick any font from the WordPress Font Library, including Google Fonts served from your own site, and customize weights, sizes, line heights, and letter spacing to achieve the perfect visual balance.
 * Copy to Clipboard: Optionally add a "Copy quote" button so readers can copy the quote and citation in one click. Built on the WordPress Interactivity API, so the script only loads on pages that use it.
 * Versatile Block Alignment: Align your quotes to suit your content's layout. Opt for left, right, center, or full-width alignments for a seamless blend within your pages.
 
@@ -36,7 +34,7 @@ Terms of Service: https://developers.google.com/fonts/terms
 
 1. Upload the plugin files to the `/wp-content/plugins/wp-quote-blocks` directory, or install the plugin through the WordPress plugins screen directly.
 2. Activate the plugin through the 'Plugins' screen in WordPress
-3. Go to "WP Quote Blocks Settings" menu from WP Dashboard and enter your Google API Key for using google fronts.
+3. Optional: install fonts from Appearance → Fonts (or Styles → Typography in the Site Editor) to use them in your quotes.
 
 == Screenshots ==
 
@@ -52,6 +50,11 @@ Terms of Service: https://developers.google.com/fonts/terms
 10. Different styles in one page
 
 == Changelog ==
+
+= 0.3.0 =
+* Improvement: Fonts now come from the WordPress Font Library through the core typography controls. Google Fonts are served from your own site and no Google API key is needed.
+* Removed: The Google API key settings page.
+* Compatibility: Existing quotes are migrated automatically. Their fonts keep loading from Google until installed in the Font Library.
 
 = 0.2.0 =
 * New: Optional "Copy quote" button powered by the Interactivity API.

@@ -102,9 +102,10 @@ export default function save( props ) {
 		borderRadius: attributes.borderRadius + '%',
 	};
 
+	// Font family comes from core's typography support on the wrapper. Font
+	// weight skips serialization there so it only applies to the quote text.
 	const quoteTextsStyle = {
 		textAlign: attributes.alignment ? attributes.alignment : 'inherit',
-		fontFamily: `"${ attributes.fontFamily }", Sans-serif`,
 	};
 
 	const quoteWrapperStyles = {
@@ -179,7 +180,7 @@ export default function save( props ) {
 					style={ {
 						...quoteTextsStyle,
 						color: attributes.quoteFontColor,
-						fontWeight: attributes.fontWeight,
+						fontWeight: attributes.style?.typography?.fontWeight,
 						fontSize: attributes.quoteFontSize,
 						letterSpacing: attributes.quoteLetterSpacing,
 					} }
