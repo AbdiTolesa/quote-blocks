@@ -8,8 +8,9 @@ import {
 	RichText,
 	BlockControls,
 	InspectorControls,
-	PanelColorSettings,
 	useSettings,
+	__experimentalColorGradientSettingsDropdown as ColorGradientSettingsDropdown,
+	__experimentalUseMultipleOriginColorsAndGradients as useMultipleOriginColorsAndGradients,
 } from '@wordpress/block-editor';
 
 import './editor.scss';
@@ -28,6 +29,7 @@ import {
 	__experimentalToolsPanelItem as ToolsPanelItem,
 } from '@wordpress/components';
 
+import metadata from './block.json';
 import {
 	getFirstFamily,
 	getGoogleFontUrl,
@@ -95,34 +97,55 @@ const isFontInstalled = ( fontFamilies, name ) => {
 	);
 };
 
+/**
+ * Default value of a block attribute, from block.json.
+ *
+ * @param {string} name Attribute name.
+ * @return {string|number|boolean|Object} Default value.
+ */
+const getDefault = ( name ) => metadata.attributes[ name ]?.default;
+
+/**
+ * Whether an attribute differs from its block.json default. Scalars compare
+ * as strings because some defaults are numeric strings (e.g. "16").
+ *
+ * @param {Object} attributes Block attributes.
+ * @param {string} name       Attribute name.
+ * @return {boolean} True when the user changed the value.
+ */
+const isChanged = ( attributes, name ) => {
+	const value = attributes[ name ];
+	const fallback = getDefault( name );
+
+	if ( fallback && typeof fallback === 'object' ) {
+		return JSON.stringify( value ) !== JSON.stringify( fallback );
+	}
+
+	return String( value ?? '' ) !== String( fallback ?? '' );
+};
+
+/**
+ * Builds a reset-all filter that restores attributes to their defaults.
+ *
+ * @param {...string} names Attribute names.
+ * @return {() => Object} Filter for ToolsPanelItem's resetAllFilter.
+ */
+const resetTo =
+	( ...names ) =>
+	() =>
+		Object.fromEntries(
+			names.map( ( name ) => [ name, getDefault( name ) ] )
+		);
+
 function EditContainer( props ) {
-	const { attributes, setAttributes } = props;
+	const { attributes, setAttributes, clientId } = props;
+	const colorGradientSettings = useMultipleOriginColorsAndGradients();
 	const [ fontFamilies ] = useSettings( 'typography.fontFamilies' );
 	const legacyFont = getLegacyFontName( attributes );
 	const loadLegacyFont =
 		!! legacyFont && ! isFontInstalled( fontFamilies, legacyFont );
 	const onChangeIconSize = ( size ) => {
 		setAttributes( { iconSize: size + 'px' } );
-	};
-
-	const onChangeIconColor = ( color ) => {
-		setAttributes( { iconColor: color } );
-	};
-
-	const onChangeBackgroundColor = ( newColor ) => {
-		setAttributes( { backgroundColor: newColor } );
-	};
-
-	const onChangeLinesColor = ( newColor ) => {
-		setAttributes( { linesColor: newColor } );
-	};
-
-	const onChangeQuoteFontColor = ( newColor ) => {
-		setAttributes( { quoteFontColor: newColor } );
-	};
-
-	const onChangeCitationFontColor = ( newColor ) => {
-		setAttributes( { citationFontColor: newColor } );
 	};
 
 	const onChangeAlignment = ( newAlignment ) => {
@@ -149,33 +172,30 @@ function EditContainer( props ) {
 		fill: attributes.iconColor,
 	};
 
-	const colorSettingsDropDown = [
+	// Rendered in the Styles tab's Color panel. Icon and lines colors only
+	// show when those elements are visible.
+	const colorSettings = [
 		{
-			value: attributes.iconColor,
-			onChange: onChangeIconColor,
-			label: __( 'Icon color', 'wp-quote-blocks' ),
+			name: 'backgroundColor',
+			label: __( 'Background', 'wp-quote-blocks' ),
 		},
 		{
-			value: attributes.backgroundColor,
-			onChange: onChangeBackgroundColor,
-			label: __( 'Background color', 'wp-quote-blocks' ),
+			name: 'quoteFontColor',
+			label: __( 'Quote text', 'wp-quote-blocks' ),
 		},
 		{
-			value: attributes.linesColor,
-			onChange: onChangeLinesColor,
-			label: __( 'Lines color', 'wp-quote-blocks' ),
+			name: 'citationFontColor',
+			label: __( 'Citation text', 'wp-quote-blocks' ),
 		},
-		{
-			value: attributes.quoteFontColor,
-			onChange: onChangeQuoteFontColor,
-			label: __( 'Quote font color', 'wp-quote-blocks' ),
+		attributes.showIcon && {
+			name: 'iconColor',
+			label: __( 'Icon', 'wp-quote-blocks' ),
 		},
-		{
-			value: attributes.citationFontColor,
-			onChange: onChangeCitationFontColor,
-			label: __( 'Citation font color', 'wp-quote-blocks' ),
+		attributes.showLines && {
+			name: 'linesColor',
+			label: __( 'Lines', 'wp-quote-blocks' ),
 		},
-	];
+	].filter( Boolean );
 
 	const icons = [
 		'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50"><path d="M10.3 24.8V26H20v16.9H0V26.2C0 13.4 6.6 7.1 19.9 7.1v7.1c-3.4.5-5.9 1.6-7.4 3.3-1.5 1.7-2.2 4.1-2.2 7.3zm30 0V26H50v16.9H30.1V26.2c0-12.7 6.6-19.1 19.9-19.1v7.1c-6.4.7-9.7 4.3-9.7 10.6z"></path></svg>',
@@ -228,10 +248,6 @@ function EditContainer( props ) {
 		}
 
 		return svg;
-	};
-
-	const resetFontSizes = () => {
-		setAttributes( { quoteFontSize: '1rem', citationFontSize: '0.75rem' } );
 	};
 
 	const blockStyles = {
@@ -362,79 +378,35 @@ function EditContainer( props ) {
 						{ sprintf(
 							/* translators: %s: Font family name. */
 							__(
-								'This quote uses "%s" from the old font picker. Install it from Appearance → Fonts (or Styles → Typography in the Site Editor), then select it under Typography → Font so it is served from your site.',
+								'This quote uses "%s" from the old font picker. Install it from Appearance → Fonts (or Styles → Typography in the Site Editor), then pick it in this block\'s Styles tab under Typography → Font so it is served from your site.',
 								'wp-quote-blocks'
 							),
 							legacyFont
 						) }
 					</Notice>
 				) }
-				<PanelBody title={ __( 'General', 'wp-quote-blocks' ) }>
+				<PanelBody title={ __( 'Display', 'wp-quote-blocks' ) }>
 					<ToggleControl
+						__nextHasNoMarginBottom
 						label={ __( 'Show icon', 'wp-quote-blocks' ) }
-						help={
-							attributes.showIcon
-								? __( 'Icon is shown', 'wp-quote-blocks' )
-								: __( 'Icon is hidden', 'wp-quote-blocks' )
-						}
 						checked={ attributes.showIcon }
-						onChange={ () => {
-							setAttributes( {
-								showIcon: ! attributes.showIcon,
-							} );
-						} }
-					/>
-					<RangeControl
-						label={ __( 'Shadow', 'wp-quote-blocks' ) }
-						value={ parseInt( attributes.boxShadow ) }
-						onChange={ onChangeBoxShadow }
-						step="1"
-						min={ 0 }
-						max={ 20 }
-					/>
-					<RangeControl
-						label={ __( 'Border radius', 'wp-quote-blocks' ) }
-						value={ parseInt( attributes.borderRadius ) }
-						onChange={ ( newBorderRadius ) => {
-							setAttributes( { borderRadius: newBorderRadius } );
-						} }
-						step="1"
-						min={ 0 }
-						max={ 50 }
-					/>
-					<BoxControl
-						label={ __( 'Quote margin', 'wp-quote-blocks' ) }
-						values={ attributes.margin }
-						onChange={ ( nextValues ) => {
-							setAttributes( { margin: nextValues } );
-						} }
-						inputProps={ { min: -300 } }
-					/>
-					<BoxControl
-						label={ __( 'Quote padding', 'wp-quote-blocks' ) }
-						values={ attributes.padding }
-						onChange={ ( nextValues ) =>
-							setAttributes( { padding: nextValues } )
+						onChange={ ( showIcon ) =>
+							setAttributes( { showIcon } )
 						}
 					/>
 					<ToggleControl
+						__nextHasNoMarginBottom
 						label={ __(
 							'Show top and bottom bars',
 							'wp-quote-blocks'
 						) }
-						help={
-							attributes.showLines
-								? __( 'Bars are shown', 'wp-quote-blocks' )
-								: __( 'Bars are hidden', 'wp-quote-blocks' )
-						}
 						checked={ attributes.showLines }
-						onChange={ () => {
-							setAttributes( {
-								showLines: ! attributes.showLines,
-							} );
-						} }
+						onChange={ ( showLines ) =>
+							setAttributes( { showLines } )
+						}
 					/>
 					<ToggleControl
+						__nextHasNoMarginBottom
 						label={ __( 'Show copy button', 'wp-quote-blocks' ) }
 						help={ __(
 							'Lets visitors copy the quote and citation to their clipboard.',
@@ -446,109 +418,286 @@ function EditContainer( props ) {
 						}
 					/>
 				</PanelBody>
-				<PanelBody title={ __( 'Icon Settings', 'wp-quote-blocks' ) }>
-					<RangeControl
-						label={ __( 'Icon size', 'wp-quote-blocks' ) }
-						value={ parseInt( attributes.iconSize ) }
-						onChange={ onChangeIconSize }
-						min={ 1 }
-						max={ 200 }
+				{ attributes.showIcon && (
+					<PanelBody title={ __( 'Icon', 'wp-quote-blocks' ) }>
+						{ iconSetting }
+					</PanelBody>
+				) }
+			</InspectorControls>
+
+			<InspectorControls group="typography">
+				<ToolsPanelItem
+					panelId={ clientId }
+					label={ __( 'Quote size', 'wp-quote-blocks' ) }
+					hasValue={ () => isChanged( attributes, 'quoteFontSize' ) }
+					onDeselect={ () =>
+						setAttributes( resetTo( 'quoteFontSize' )() )
+					}
+					resetAllFilter={ resetTo( 'quoteFontSize' ) }
+					isShownByDefault
+				>
+					<FontSizePicker
+						__nextHasNoMarginBottom
+						__next40pxDefaultSize
+						fontSizes={ fontSizes }
+						value={ attributes.quoteFontSize }
+						fallbackFontSize={ 16 }
+						onChange={ onChangeQuoteFontSize }
 					/>
+				</ToolsPanelItem>
+				<ToolsPanelItem
+					panelId={ clientId }
+					label={ __( 'Citation size', 'wp-quote-blocks' ) }
+					hasValue={ () =>
+						isChanged( attributes, 'citationFontSize' )
+					}
+					onDeselect={ () =>
+						setAttributes( resetTo( 'citationFontSize' )() )
+					}
+					resetAllFilter={ resetTo( 'citationFontSize' ) }
+					isShownByDefault
+				>
+					<FontSizePicker
+						__nextHasNoMarginBottom
+						__next40pxDefaultSize
+						fontSizes={ fontSizes }
+						value={ attributes.citationFontSize }
+						fallbackFontSize={ 12 }
+						onChange={ onChangeCitationFontSize }
+					/>
+				</ToolsPanelItem>
+				<ToolsPanelItem
+					panelId={ clientId }
+					label={ __( 'Quote letter spacing', 'wp-quote-blocks' ) }
+					hasValue={ () =>
+						isChanged( attributes, 'quoteLetterSpacing' )
+					}
+					onDeselect={ () =>
+						setAttributes( resetTo( 'quoteLetterSpacing' )() )
+					}
+					resetAllFilter={ resetTo( 'quoteLetterSpacing' ) }
+				>
 					<RangeControl
-						label={ __( 'Shadow', 'wp-quote-blocks' ) }
-						value={ parseInt( attributes.iconShadow ) }
-						onChange={ ( newShadow ) =>
-							setAttributes( {
-								iconShadow: parseInt( newShadow ),
-							} )
+						__nextHasNoMarginBottom
+						__next40pxDefaultSize
+						label={ __(
+							'Quote letter spacing',
+							'wp-quote-blocks'
+						) }
+						value={ parseInt( attributes.quoteLetterSpacing ) }
+						onChange={ ( quoteLetterSpacing ) =>
+							setAttributes( { quoteLetterSpacing } )
 						}
-						step="1"
+						step={ 1 }
+						min={ -3 }
+						max={ 10 }
+					/>
+				</ToolsPanelItem>
+			</InspectorControls>
+
+			<InspectorControls group="color">
+				{ colorSettings.map( ( { name, label } ) => (
+					<ColorGradientSettingsDropdown
+						key={ name }
+						__experimentalIsRenderedInSidebar
+						panelId={ clientId }
+						settings={ [
+							{
+								label,
+								colorValue: attributes[ name ],
+								onColorChange: ( value ) =>
+									setAttributes( { [ name ]: value } ),
+								isShownByDefault: true,
+								resetAllFilter: resetTo( name ),
+								enableAlpha: true,
+								clearable: true,
+							},
+						] }
+						{ ...colorGradientSettings }
+					/>
+				) ) }
+			</InspectorControls>
+
+			<InspectorControls group="dimensions">
+				<ToolsPanelItem
+					panelId={ clientId }
+					label={ __( 'Quote margin', 'wp-quote-blocks' ) }
+					hasValue={ () => isChanged( attributes, 'margin' ) }
+					onDeselect={ () => setAttributes( resetTo( 'margin' )() ) }
+					resetAllFilter={ resetTo( 'margin' ) }
+					isShownByDefault
+				>
+					<BoxControl
+						__next40pxDefaultSize
+						label={ __( 'Quote margin', 'wp-quote-blocks' ) }
+						values={ attributes.margin }
+						onChange={ ( margin ) => setAttributes( { margin } ) }
+						inputProps={ { min: -300 } }
+					/>
+				</ToolsPanelItem>
+				<ToolsPanelItem
+					panelId={ clientId }
+					label={ __( 'Quote padding', 'wp-quote-blocks' ) }
+					hasValue={ () => isChanged( attributes, 'padding' ) }
+					onDeselect={ () => setAttributes( resetTo( 'padding' )() ) }
+					resetAllFilter={ resetTo( 'padding' ) }
+					isShownByDefault
+				>
+					<BoxControl
+						__next40pxDefaultSize
+						label={ __( 'Quote padding', 'wp-quote-blocks' ) }
+						values={ attributes.padding }
+						onChange={ ( padding ) => setAttributes( { padding } ) }
+					/>
+				</ToolsPanelItem>
+			</InspectorControls>
+
+			<InspectorControls group="border">
+				<ToolsPanelItem
+					panelId={ clientId }
+					label={ __( 'Radius', 'wp-quote-blocks' ) }
+					hasValue={ () => isChanged( attributes, 'borderRadius' ) }
+					onDeselect={ () =>
+						setAttributes( resetTo( 'borderRadius' )() )
+					}
+					resetAllFilter={ resetTo( 'borderRadius' ) }
+					isShownByDefault
+				>
+					<RangeControl
+						__nextHasNoMarginBottom
+						__next40pxDefaultSize
+						label={ __( 'Radius (%)', 'wp-quote-blocks' ) }
+						value={ parseInt( attributes.borderRadius ) }
+						onChange={ ( borderRadius ) =>
+							setAttributes( { borderRadius } )
+						}
+						step={ 1 }
+						min={ 0 }
+						max={ 50 }
+					/>
+				</ToolsPanelItem>
+				<ToolsPanelItem
+					panelId={ clientId }
+					label={ __( 'Shadow', 'wp-quote-blocks' ) }
+					hasValue={ () => isChanged( attributes, 'boxShadow' ) }
+					onDeselect={ () =>
+						setAttributes( resetTo( 'boxShadow' )() )
+					}
+					resetAllFilter={ resetTo( 'boxShadow' ) }
+					isShownByDefault
+				>
+					<RangeControl
+						__nextHasNoMarginBottom
+						__next40pxDefaultSize
+						label={ __( 'Shadow', 'wp-quote-blocks' ) }
+						value={ parseInt( attributes.boxShadow ) }
+						onChange={ onChangeBoxShadow }
+						step={ 1 }
 						min={ 0 }
 						max={ 20 }
 					/>
-					{ iconSetting }
-					<BoxControl
-						label={ __( 'Margin', 'wp-quote-blocks' ) }
-						values={ attributes.margin }
-						onChange={ ( nextValues ) =>
-							setAttributes( { iconMargin: nextValues } )
-						}
-						inputProps={ { min: -300 } }
-					/>
-					<BoxControl
-						label={ __( 'Padding', 'wp-quote-blocks' ) }
-						values={ attributes.padding }
-						onChange={ ( nextValues ) =>
-							setAttributes( { iconPadding: nextValues } )
-						}
-					/>
-				</PanelBody>
-				<PanelBody title={ __( 'Color Settings', 'wp-quote-blocks' ) }>
-					<PanelColorSettings
-						initialOpen={ false }
-						colorSettings={ colorSettingsDropDown }
-					></PanelColorSettings>
-				</PanelBody>
-				<ToolsPanel label={ __( 'Typography', 'wp-quote-blocks' ) }>
-					<ToolsPanelItem
-						hasValue={ () =>
-							!! attributes.quoteFontSize ||
-							!! attributes.citationFontSize
-						}
-						label={ __( 'Font sizes', 'wp-quote-blocks' ) }
-						onDeselect={ () => resetFontSizes() }
-					>
-						<PanelBody
-							title={ __( 'Font sizes', 'wp-quote-blocks' ) }
-						>
-							<p style={ { marginBottom: '6px' } }>
-								{ __( 'Quote', 'wp-quote-blocks' ) }
-							</p>
-							<FontSizePicker
-								__nextHasNoMarginBottom
-								fontSizes={ fontSizes }
-								value={ attributes.quoteFontSize }
-								fallbackFontSize="16"
-								onChange={ onChangeQuoteFontSize }
-							/>
-							<p style={ { marginBottom: '6px' } }>
-								{ __( 'Citation', 'wp-quote-blocks' ) }
-							</p>
-							<FontSizePicker
-								__nextHasNoMarginBottom
-								fontSizes={ fontSizes }
-								value={ attributes.citationFontSize }
-								fallbackFontSize="16"
-								onChange={ onChangeCitationFontSize }
-							/>
-						</PanelBody>
-					</ToolsPanelItem>
-					<ToolsPanelItem
-						hasValue={ () => true }
-						label={ __( 'Letter spacing', 'wp-quote-blocks' ) }
-					>
-						<PanelBody title={ '' }>
-							<RangeControl
-								label={ __(
-									'Quote letter spacing',
-									'wp-quote-blocks'
-								) }
-								value={ parseInt(
-									attributes.quoteLetterSpacing
-								) }
-								onChange={ ( newLetterSpacing ) => {
-									setAttributes( {
-										quoteLetterSpacing: newLetterSpacing,
-									} );
-								} }
-								step="1"
-								min={ -3 }
-								max={ 10 }
-							/>
-						</PanelBody>
-					</ToolsPanelItem>
-				</ToolsPanel>
+				</ToolsPanelItem>
 			</InspectorControls>
+
+			{ attributes.showIcon && (
+				<InspectorControls group="styles">
+					<ToolsPanel
+						label={ __( 'Icon', 'wp-quote-blocks' ) }
+						resetAll={ () =>
+							setAttributes(
+								resetTo(
+									'iconSize',
+									'iconShadow',
+									'iconMargin',
+									'iconPadding'
+								)()
+							)
+						}
+					>
+						<ToolsPanelItem
+							label={ __( 'Size', 'wp-quote-blocks' ) }
+							hasValue={ () =>
+								isChanged( attributes, 'iconSize' )
+							}
+							onDeselect={ () =>
+								setAttributes( resetTo( 'iconSize' )() )
+							}
+							isShownByDefault
+						>
+							<RangeControl
+								__nextHasNoMarginBottom
+								__next40pxDefaultSize
+								label={ __( 'Size', 'wp-quote-blocks' ) }
+								value={ parseInt( attributes.iconSize ) }
+								onChange={ onChangeIconSize }
+								min={ 1 }
+								max={ 200 }
+							/>
+						</ToolsPanelItem>
+						<ToolsPanelItem
+							label={ __( 'Shadow', 'wp-quote-blocks' ) }
+							hasValue={ () =>
+								isChanged( attributes, 'iconShadow' )
+							}
+							onDeselect={ () =>
+								setAttributes( resetTo( 'iconShadow' )() )
+							}
+						>
+							<RangeControl
+								__nextHasNoMarginBottom
+								__next40pxDefaultSize
+								label={ __( 'Shadow', 'wp-quote-blocks' ) }
+								value={ parseInt( attributes.iconShadow ) }
+								onChange={ ( iconShadow ) =>
+									setAttributes( {
+										iconShadow: parseInt( iconShadow ),
+									} )
+								}
+								step={ 1 }
+								min={ 0 }
+								max={ 20 }
+							/>
+						</ToolsPanelItem>
+						<ToolsPanelItem
+							label={ __( 'Margin', 'wp-quote-blocks' ) }
+							hasValue={ () =>
+								isChanged( attributes, 'iconMargin' )
+							}
+							onDeselect={ () =>
+								setAttributes( resetTo( 'iconMargin' )() )
+							}
+						>
+							<BoxControl
+								__next40pxDefaultSize
+								label={ __( 'Margin', 'wp-quote-blocks' ) }
+								values={ attributes.iconMargin }
+								onChange={ ( iconMargin ) =>
+									setAttributes( { iconMargin } )
+								}
+								inputProps={ { min: -300 } }
+							/>
+						</ToolsPanelItem>
+						<ToolsPanelItem
+							label={ __( 'Padding', 'wp-quote-blocks' ) }
+							hasValue={ () =>
+								isChanged( attributes, 'iconPadding' )
+							}
+							onDeselect={ () =>
+								setAttributes( resetTo( 'iconPadding' )() )
+							}
+						>
+							<BoxControl
+								__next40pxDefaultSize
+								label={ __( 'Padding', 'wp-quote-blocks' ) }
+								values={ attributes.iconPadding }
+								onChange={ ( iconPadding ) =>
+									setAttributes( { iconPadding } )
+								}
+							/>
+						</ToolsPanelItem>
+					</ToolsPanel>
+				</InspectorControls>
+			) }
 			<div
 				{ ...useBlockProps( {
 					style: blockStyles,
