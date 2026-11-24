@@ -1,8 +1,9 @@
 === Wp Quote Blocks ===
 Contributors:      abditsori
 Tags:              quote, quote block, quotation, verse, highlight
+Requires at least: 6.5
 Tested up to:      6.9
-Stable tag:        0.1.0
+Stable tag:        0.2.0
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,6 +29,7 @@ Terms of Service: https://developers.google.com/fonts/terms
 * Sleek Design Options: Access a plethora of design options to fine-tune your quotes. From fonts and colors to border styles and backgrounds, create a visually appealing quote block that resonates with your brand identity.
 * Responsive Layouts: Ensure your quotes look stunning on any device with our responsive layout settings. Choose from various layouts to optimize the appearance of your quotes across desktops, tablets, and smartphones.
 * Advanced Typography: Empower your quotes with a wide range of typography settings. Customize font families, sizes, line heights, and letter spacings to achieve the perfect visual balance.
+* Copy to Clipboard: Optionally add a "Copy quote" button so readers can copy the quote and citation in one click. Built on the WordPress Interactivity API, so the script only loads on pages that use it.
 * Versatile Block Alignment: Align your quotes to suit your content's layout. Opt for left, right, center, or full-width alignments for a seamless blend within your pages.
 
 == Installation ==
@@ -48,3 +50,13 @@ Terms of Service: https://developers.google.com/fonts/terms
 8. Edit page (3)
 9. Edit page (4)
 10. Different styles in one page
+
+== Changelog ==
+
+= 0.2.0 =
+* New: Optional "Copy quote" button powered by the Interactivity API.
+* Improvement: Updated build tooling to @wordpress/scripts 37.
+* Requires WordPress 6.5 or later.
+
+= 0.1.0 =
+* Initial release.
