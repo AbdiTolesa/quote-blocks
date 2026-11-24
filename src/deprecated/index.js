@@ -8,7 +8,7 @@ import saveV1 from './save-v1';
 import { getFirstFamily } from '../legacy-font';
 
 /**
- * v1 (before 0.3.0): the block stored a Google Fonts family name and weight in
+ * v1 (before 1.0): the block stored a Google Fonts family name and weight in
  * its own `fontFamily`/`fontWeight` attributes and printed them as inline
  * styles. Those attribute names now belong to core's typography supports
  * (`fontFamily` holds a Font Library preset slug), so values move to

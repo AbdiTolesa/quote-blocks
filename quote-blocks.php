@@ -4,9 +4,9 @@
  * Description:       A plugin that allows you create elegant Quote blocks at ease.
  * Requires at least: 6.5
  * Requires PHP:      7.0
- * Version:           0.3.0
+ * Version:           1.0
  * Author:            Abdi Tolessa
- * Plugin URI:        https://github.com/AbdiTolesa/wp-quote-blocks
+ * Plugin URI:        https://github.com/AbdiTolesa/quote-blocks
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       wp-quote-blocks
@@ -41,9 +41,9 @@ function qblks_get_first_family( $value ) {
 }
 
 /**
- * Returns the Google font a quote chose with the pre-0.3.0 font picker.
+ * Returns the Google font a quote chose with the pre-1.0 font picker.
  *
- * Since 0.3.0 fonts come from core's Font Library via the fontFamily block
+ * Since 1.0 fonts come from core's Font Library via the fontFamily block
  * support, stored as a preset slug. Two older shapes still exist in content:
  * - not yet re-saved: the block's old `fontFamily` attribute holds a family
  *   name such as "Dancing Script" (slugs are lowercase-kebab, names are not);
@@ -93,7 +93,7 @@ function qblks_is_font_installed( $name ) {
 }
 
 /**
- * Keeps fonts picked before 0.3.0 working: enqueues the Google Fonts
+ * Keeps fonts picked before 1.0 working: enqueues the Google Fonts
  * stylesheet for a quote whose font is not installed in the Font Library.
  * Quotes that use Font Library fonts never contact Google.
  *

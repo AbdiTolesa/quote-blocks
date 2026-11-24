@@ -1,7 +1,7 @@
 /**
- * Helpers for fonts chosen with the pre-0.3.0 Google Fonts picker.
+ * Helpers for fonts chosen with the pre-1.0 Google Fonts picker.
  *
- * Since 0.3.0 fonts come from core's Font Library through the `fontFamily`
+ * Since 1.0 fonts come from core's Font Library through the `fontFamily`
  * block support (a preset slug). Older quotes are migrated to a custom
  * `style.typography.fontFamily` value such as `"Dancing Script", sans-serif`,
  * which these helpers recognise. Mirrors qblks_get_legacy_font_name() in PHP.
@@ -48,7 +48,7 @@ export const getLegacyFontName = ( attributes ) => {
 };
 
 /**
- * Builds the Google Fonts stylesheet URL used before 0.3.0.
+ * Builds the Google Fonts stylesheet URL used before 1.0.
  *
  * @param {string}        name   Font family name.
  * @param {string|number} weight Optional font weight.

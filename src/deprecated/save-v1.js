@@ -1,5 +1,5 @@
 /**
- * Save function for blocks saved before 0.3.0, when the block had its own
+ * Save function for blocks saved before 1.0, when the block had its own
  * fontFamily/fontWeight attributes and loaded fonts from the Google Fonts API.
  *
  * Frozen copy: do not change, or existing posts will fail block validation.

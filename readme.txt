@@ -3,7 +3,7 @@ Contributors:      abditsori
 Tags:              quote, quote block, quotation, verse, highlight
 Requires at least: 6.5
 Tested up to:      6.9
-Stable tag:        0.3.0
+Stable tag:        1.0
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,7 @@ Unleash your creativity with over 20+ finely-tuned settings per block, allowing 
 **Fonts and Third Party Services**
 Fonts come from the WordPress Font Library (Appearance → Fonts, or Styles → Typography in the Site Editor). Google Fonts installed there are copied to and served from your own site, so visitors' browsers do not contact Google.
 
-Quotes created with version 0.2.0 or earlier may use a Google font picked with the old font picker. Until that font is installed in the Font Library, the plugin keeps loading it from the Google Fonts Web API for those quotes only. In that case visitors' browsers send Google (1) their IP address, (2) the requested URL and (3) HTTP headers such as the user agent and referrer.
+Quotes created with version 0.1.0 may use a Google font picked with the old font picker. Until that font is installed in the Font Library, the plugin keeps loading it from the Google Fonts Web API for those quotes only. In that case visitors' browsers send Google (1) their IP address, (2) the requested URL and (3) HTTP headers such as the user agent and referrer.
 
 Terms of Service: https://developers.google.com/fonts/terms
 
@@ -51,14 +51,13 @@ Terms of Service: https://developers.google.com/fonts/terms
 
 == Changelog ==
 
-= 0.3.0 =
-* Improvement: Fonts now come from the WordPress Font Library through the core typography controls. Google Fonts are served from your own site and no Google API key is needed.
+= 1.0 =
+* New: Fonts come from the WordPress Font Library through the core typography controls. Google Fonts are served from your own site and no Google API key is needed.
+* New: Optional "Copy quote" button powered by the Interactivity API.
+* Improvement: Style controls moved to the block's Styles tab, inside the core Typography, Color, Dimensions and Borders panels, with Reset all support.
+* Fix: Icon margin and padding controls showed the quote's values.
 * Removed: The Google API key settings page.
 * Compatibility: Existing quotes are migrated automatically. Their fonts keep loading from Google until installed in the Font Library.
-
-= 0.2.0 =
-* New: Optional "Copy quote" button powered by the Interactivity API.
-* Improvement: Updated build tooling to @wordpress/scripts 37.
 * Requires WordPress 6.5 or later.
 
 = 0.1.0 =

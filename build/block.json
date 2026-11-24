@@ -2,7 +2,7 @@
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
   "name": "create-block/wp-quote-blocks",
-  "version": "0.3.0",
+  "version": "1.0",
   "title": "Quote Blocks",
   "category": "widgets",
   "icon": "format-quote",
