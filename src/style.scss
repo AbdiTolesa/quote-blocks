@@ -68,3 +68,29 @@
 	width: 24px;
 	height: 24px;
 }
+.wpqb-copy-button {
+	display: inline-flex;
+	align-items: center;
+	margin-top: 1rem;
+	padding: 0.35em 0.9em;
+	font-size: 0.8125rem;
+	line-height: 1.4;
+	color: inherit;
+	background: transparent;
+	border: 1px solid currentColor;
+	border-radius: 999px;
+	cursor: pointer;
+	opacity: 0.75;
+	transition: opacity 0.15s ease;
+
+	&:hover,
+	&:focus-visible,
+	&.is-copied {
+		opacity: 1;
+	}
+
+	&:focus-visible {
+		outline: 2px solid currentColor;
+		outline-offset: 2px;
+	}
+}

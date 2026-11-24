@@ -1,3 +1,4 @@
+import { __ } from '@wordpress/i18n';
 import { useBlockProps, RichText } from '@wordpress/block-editor';
 
 export default function save( props ) {
@@ -133,12 +134,43 @@ export default function save( props ) {
 		></div>
 	);
 
+	// Interactivity API wiring (see view.js). Only emitted when the copy button
+	// is enabled, so markup of existing blocks stays valid without a deprecation.
+	const copyLabels = {
+		idle: __( 'Copy quote', 'wp-quote-blocks' ),
+		copied: __( 'Copied!', 'wp-quote-blocks' ),
+		failed: __( 'Copy failed', 'wp-quote-blocks' ),
+	};
+	const interactiveProps = attributes.showCopyButton
+		? {
+				'data-wp-interactive': 'wp-quote-blocks',
+				'data-wp-context': JSON.stringify( {
+					status: 'idle',
+					labels: copyLabels,
+				} ),
+			}
+		: {};
+
+	const copyButton = attributes.showCopyButton && (
+		<button
+			type="button"
+			className="wpqb-copy-button"
+			aria-live="polite"
+			data-wp-on--click="actions.copy"
+			data-wp-text="state.buttonLabel"
+			data-wp-class--is-copied="state.isCopied"
+		>
+			{ copyLabels.idle }
+		</button>
+	);
+
 	return (
 		<div
 			{ ...useBlockProps.save( {
 				style: blockStyles,
 				className: `wp-quote-blocks quote-variation-${ attributes.class }`,
 			} ) }
+			{ ...interactiveProps }
 		>
 			{ horizontalBar }
 			{ firstQuotationMark }
@@ -165,6 +197,7 @@ export default function save( props ) {
 					className="citation"
 					value={ attributes.citation }
 				/>
+				{ copyButton }
 			</div>
 			{ secondQuotationMark }
 			{ horizontalBar }

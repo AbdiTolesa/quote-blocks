@@ -605,6 +605,17 @@ function EditContainer( props ) {
 							} );
 						} }
 					/>
+					<ToggleControl
+						label={ __( 'Show copy button', 'wp-quote-blocks' ) }
+						help={ __(
+							'Lets visitors copy the quote and citation to their clipboard.',
+							'wp-quote-blocks'
+						) }
+						checked={ attributes.showCopyButton }
+						onChange={ ( showCopyButton ) =>
+							setAttributes( { showCopyButton } )
+						}
+					/>
 				</PanelBody>
 				<PanelBody title={ __( 'Icon Settings', 'wp-quote-blocks' ) }>
 					<RangeControl
@@ -796,6 +807,17 @@ function EditContainer( props ) {
 						placeholder={ __( 'Add citation…', 'wp-quote-blocks' ) }
 						textAlign="center"
 					/>
+					{ attributes.showCopyButton && (
+						// Static preview; the click behaviour lives in view.js.
+						<button
+							type="button"
+							className="wpqb-copy-button"
+							tabIndex={ -1 }
+							aria-hidden="true"
+						>
+							{ __( 'Copy quote', 'wp-quote-blocks' ) }
+						</button>
+					) }
 				</div>
 				{ secondQuotationMark }
 				{ horizontalBar }

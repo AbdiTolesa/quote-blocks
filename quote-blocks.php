@@ -2,10 +2,11 @@
 /**
  * Plugin Name:       Quote Blocks
  * Description:       A plugin that allows you create elegant Quote blocks at ease.
- * Requires at least: 6.4
+ * Requires at least: 6.5
  * Requires PHP:      7.0
- * Version:           0.1.0
- * Author:            The WordPress Contributors
+ * Version:           0.2.0
+ * Author:            Abdi Tolessa
+ * Plugin URI:        https://github.com/AbdiTolesa/wp-quote-blocks
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       wp-quote-blocks

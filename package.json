@@ -1,27 +1,34 @@
 {
 	"name": "wp-quote-blocks",
-	"version": "0.1.0",
-	"description": "Example block scaffolded with Create Block tool.",
-	"author": "The WordPress Contributors",
+	"version": "0.2.0",
+	"description": "A Gutenberg block for designing quotes, with five layout variations, Google Fonts, and an Interactivity API copy button.",
+	"author": "Abdi Tolessa",
 	"license": "GPL-2.0-or-later",
 	"main": "build/index.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/AbdiTolesa/wp-quote-blocks.git"
+	},
+	"keywords": [
+		"wordpress",
+		"gutenberg",
+		"block",
+		"quote",
+		"interactivity-api"
+	],
 	"scripts": {
-		"build": "wp-scripts build",
+		"build": "wp-scripts build --experimental-modules",
 		"format": "wp-scripts format",
 		"lint:css": "wp-scripts lint-style",
 		"lint:js": "wp-scripts lint-js",
 		"packages-update": "wp-scripts packages-update",
 		"plugin-zip": "wp-scripts plugin-zip",
-		"start": "wp-scripts start"
+		"start": "wp-scripts start --experimental-modules"
 	},
 	"devDependencies": {
-		"@wordpress/scripts": "^26.8.0",
-		"eslint": "^8.47.0",
-		"eslint-plugin-jsx-a11y": "^6.7.1",
-		"eslint-plugin-wordpress": "^0.1.0"
+		"@wordpress/scripts": "^37.2.0"
 	},
 	"dependencies": {
-		"babel-eslint": "^10.1.0",
-		"eslint-plugin-react": "^7.33.1"
+		"@wordpress/interactivity": "^8.2.0"
 	}
 }
